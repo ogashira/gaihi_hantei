@@ -1,10 +1,8 @@
+from typing import Dict
 import tkinter as tk
 import subprocess
 import sys
 from datetime import datetime  # 日付取得用
-import yaml
-from typing import Dict
-import frow
 
 def toggle_entry():
     # 状態を切り替え（Textウィジェットは "disabled" か "normal"）
@@ -13,11 +11,11 @@ def toggle_entry():
     else:
         text_addr.config(state="disabled", bg="#f0f0f0")
 
-def show_atena():
-    with open('atena.yaml', 'r', encoding='utf-8') as file:
-        config = yaml.safe_load(file)
+
+def show_atena(atena: Dict):
+
     atesaki = radio_fmt_var.get()
-    atena = config['atena'][atesaki]
+    atena = atena['atena'][atesaki]
 
     if text_addr.cget("state") == "disabled":
         text_addr.config(state="normal")
@@ -43,8 +41,7 @@ def launch_sub():
     root.destroy()
 
 
-def launch_frow():
-    dic_info: Dict = {}
+def insert_to_dic_info(dic_info):
     pno = entry_pno.get()
     date = entry_date.get()
     fmt = radio_fmt_var.get()
@@ -56,11 +53,9 @@ def launch_frow():
     dic_info['format'] = fmt
     dic_info['addr'] = addr
     
-    frow.start(dic_info)
     root.destroy()
 
-
-def run_ui():
+def run_ui(dic_info: Dict[str, str], atena: Dict):
     global root, entry_pno, entry_date, radio_fmt_var, text_addr, radio_addr_var
 
     root = tk.Tk()
@@ -72,12 +67,14 @@ def run_ui():
     frame_basic.pack(padx=20, pady=10, fill="x")
 
     # 品番
-    tk.Label(frame_basic, text="品番:").grid(row=0, column=0, sticky="e", pady=5)
+    tk.Label(frame_basic, text="品番:").grid(row=0, column=0, 
+                                                    sticky="e", pady=5)
     entry_pno = tk.Entry(frame_basic, width=30)
     entry_pno.grid(row=0, column=1, padx=10, pady=5)
 
     # 作成日（今日の日付をデフォルト挿入）
-    tk.Label(frame_basic, text="作成日:").grid(row=1, column=0, sticky="e", pady=5)
+    tk.Label(frame_basic, text="作成日:").grid(row=1, column=0, 
+                                                  sticky="e", pady=5)
     entry_date = tk.Entry(frame_basic, width=30)
     entry_date.grid(row=1, column=1, padx=10, pady=5)
 
@@ -90,8 +87,12 @@ def run_ui():
     frame_fmt.pack(padx=20, pady=10, fill="x")
 
     radio_fmt_var = tk.StringVar(value="toyotu")
-    tk.Radiobutton(frame_fmt, text="豊通", variable=radio_fmt_var, value="toyotu", command=show_atena).pack(side="left", padx=20)
-    tk.Radiobutton(frame_fmt, text="長瀬", variable=radio_fmt_var, value="nagase", command=show_atena).pack(side="left", padx=20)
+    tk.Radiobutton(frame_fmt, text="豊通", variable=radio_fmt_var, 
+                   value="toyotu", 
+                   command=lambda:show_atena(atena)).pack(side="left", padx=20)
+    tk.Radiobutton(frame_fmt, text="長瀬", variable=radio_fmt_var, 
+                   value="nagase", 
+                   command=lambda:show_atena(atena)).pack(side="left", padx=20)
 
 
     # --- 3. 宛名設定エリア ---
@@ -101,21 +102,24 @@ def run_ui():
     radio_addr_var = tk.IntVar(value=0)
     sub_frame_radio = tk.Frame(frame_addr)
     sub_frame_radio.pack(fill="x")
-    tk.Radiobutton(sub_frame_radio, text="変更無し", variable=radio_addr_var, value=0, command=toggle_entry).pack(side="left", padx=10)
-    tk.Radiobutton(sub_frame_radio, text="変更あり", variable=radio_addr_var, value=1, command=toggle_entry).pack(side="left", padx=10)
+    tk.Radiobutton(sub_frame_radio, text="変更無し", variable=radio_addr_var, 
+                   value=0, command=toggle_entry).pack(side="left", padx=10)
+    tk.Radiobutton(sub_frame_radio, text="変更あり", variable=radio_addr_var, 
+                   value=1, command=toggle_entry).pack(side="left", padx=10)
 
     # 宛名入力欄（5行分の高さに設定）
     # height=5 で5行分、width=40 で幅を指定
-    text_addr = tk.Text(frame_addr, height=5, width=40, state="disabled", bg="#f0f0f0")
+    text_addr = tk.Text(frame_addr, height=5, width=40, 
+                        state="disabled", bg="#f0f0f0")
     text_addr.pack(pady=10)
 
 
     # --- 実行ボタン ---
-    btn_submit = tk.Button(root, text="該非判定書を作成する", command=launch_frow, 
-                           bg="#2196F3", fg="white", font=("", 10, "bold"), pady=10)
+    btn_submit = tk.Button(root, text="該非判定書を作成する", 
+                           command=lambda:insert_to_dic_info(dic_info), 
+                           bg="#2196F3", fg="white", 
+                           font=("", 10, "bold"), 
+                           pady=10)
     btn_submit.pack(pady=20, padx=20, fill="x")
 
     root.mainloop()
-
-if __name__ == "__main__":
-    run_ui()

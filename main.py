@@ -1,7 +1,7 @@
-from ui import run_ui
+from flow import start
 
 def main()->None:
-    run_ui()
+    start()
 
 if __name__ == '__main__':
     main()
