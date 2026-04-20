@@ -299,7 +299,7 @@ class Genryou(IComposition):
         
 
     def show_compositon(self)-> None:
-        print(f'{self._parent_hinban}, {self._hinban}, {self._qty_per_net * 100}%')
+        print(f'{self._parent_hinban}, {self._hinban}, {self._qty}')
 
 
     def insert_composition_to_list(self, l: List[List[Any]])-> None:

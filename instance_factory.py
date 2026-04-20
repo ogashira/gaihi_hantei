@@ -2,8 +2,10 @@ from dataclasses import dataclass
 from typing import Dict, TYPE_CHECKING, Any, List
 import platform
 import sys
+from decimal import Decimal
 from fetch_data_for_list import IFetchDataForList
 from list_to_dict import ListToDict
+from judgment_gaihi import IJudgmentGaihi
 
 # 実行時にはインポートせず、型チェックの為だけに書く
 if TYPE_CHECKING:
@@ -104,3 +106,38 @@ class InstanceFactory:
         if ins_name not in cls._instances:
             cls._instances[ins_name] = ListToDict()
         return cls._instances[ins_name]
+
+
+    @classmethod
+    def get_reg2_21_3(cls, reg_dic2_21_3: Dict, 
+                  brokendown_composition: Dict[str, Decimal]) -> IJudgmentGaihi:
+        from judgment_gaihi import Reg2_21_3
+        ins_name: str = 'reg2_21_3'
+        if ins_name not in cls._instances:
+            cls._instances[ins_name] = Reg2_21_3(reg_dic2_21_3, 
+                                                 brokendown_composition)
+        return cls._instances[ins_name]
+
+
+    @classmethod
+    def get_reg1_4_1(cls, reg_dic1_4_1: Dict, 
+                  brokendown_composition: Dict[str, Decimal]) -> IJudgmentGaihi:
+        from judgment_gaihi import Reg1_4_1
+        ins_name: str = 'reg1_4_1'
+        if ins_name not in cls._instances:
+            cls._instances[ins_name] = Reg1_4_1(reg_dic1_4_1, 
+                                                 brokendown_composition)
+        return cls._instances[ins_name]
+
+
+    @classmethod
+    def get_reg2_35_3(cls, reg_dic2_35_3: Dict, 
+                  brokendown_composition: Dict[str, Decimal]) -> IJudgmentGaihi:
+        from judgment_gaihi import Reg2_35_3
+        ins_name: str = 'reg2_35_3'
+        if ins_name not in cls._instances:
+            cls._instances[ins_name] = Reg2_35_3(reg_dic2_35_3, 
+                                                 brokendown_composition)
+        return cls._instances[ins_name]
+
+

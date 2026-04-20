@@ -3,16 +3,19 @@ from typing import Dict, List, Any
 from decimal import Decimal
 from ui import run_ui
 from instance_factory import InstanceFactory
-from fetch_data_for_list import FetchComponentBreakdown, IFetchDataForList, FetchHinban, FetchPs
+from fetch_data_for_list import IFetchDataForList
 from list_to_dict import ListToDict
 from composition import IComposition, Seihin, CompositionError
+from judgment_gaihi import IJudgmentGaihi
 
 
 def start()-> None:
     '''
     dic_info = {'hinban': , 'date': , 'format': , 'addr': }
     '''
-    with open('atena.yaml', 'r', encoding='utf-8') as file:
+    yaml_file = r'//192.168.1.247/共有/技術課ﾌｫﾙﾀﾞ/200. effit_data/ﾏｽﾀ/' \
+                r'該非判定書自動作成関連/gaihi.yaml'
+    with open(yaml_file, 'r', encoding='utf-8') as file:
         config = yaml.safe_load(file)
 
     # uiを立ち上げて、dic_infoに情報を詰めてもらう
@@ -89,6 +92,21 @@ def start()-> None:
         sum += val
 
     print(sum)
+
+    reg_dic2_21_3 = config['regulations']['2-21-3']
+    reg2_21_3: IJudgmentGaihi = InstanceFactory.get_reg2_21_3(reg_dic2_21_3, 
+                                                        brokendown_composition)
+    
+    reg_dic1_4_1 = config['regulations']['1-4-1']
+    reg1_4_1: IJudgmentGaihi = InstanceFactory.get_reg1_4_1(reg_dic1_4_1, 
+                                                        brokendown_composition)
+
+    reg_dic2_35_3 = config['regulations']['2-35-3']
+    reg2_35_3: IJudgmentGaihi = InstanceFactory.get_reg2_35_3(reg_dic2_35_3, 
+                                                        brokendown_composition)
+
+
+
 
 
 
