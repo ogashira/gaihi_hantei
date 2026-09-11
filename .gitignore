@@ -12,8 +12,6 @@ __pycache__
 *.jpg
 *.pdf
 *.txt
-./old_soukoidou2/
-old_soukoidou2/
 pngs/
 *.json
 cybozu_ini/

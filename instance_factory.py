@@ -1,11 +1,12 @@
 from dataclasses import dataclass
-from typing import Dict, TYPE_CHECKING, Any, List
+from typing import Dict, TYPE_CHECKING, Any, List, Union
 import platform
 import sys
 from decimal import Decimal
 from fetch_data_for_list import IFetchDataForList
 from list_to_dict import ListToDict
-from judgment_gaihi import IJudgmentGaihi
+from IJudgment_gaihi import IJudgmentGaihi
+from IExcel_format import IExcelFormat, ToyotuFormat, NagaseFormat
 
 # 実行時にはインポートせず、型チェックの為だけに書く
 if TYPE_CHECKING:
@@ -94,9 +95,16 @@ class InstanceFactory:
         from fetch_data_for_list import FetchComponentBreakdown
         ins_name: str = 'FetchComponentBreakdown'
         if ins_name not in cls._instances:
-            cls.get_sql_server_effit()
+            cls.get_sql_server_tss()
             cls._instances[ins_name] = FetchComponentBreakdown(cls._cnxn_tss)
         return cls._instances[ins_name]
+
+
+    @classmethod
+    def get_fetchDb(cls, hinban) -> IFetchDataForList: # db
+        from fetch_data_for_list import FetchDb
+        cls.get_sql_server_tss()
+        return FetchDb(cls._cnxn_tss, hinban)
 
 
     @classmethod
@@ -111,7 +119,7 @@ class InstanceFactory:
     @classmethod
     def get_reg2_21_3(cls, reg_dic2_21_3: Dict, 
                   brokendown_composition: Dict[str, Decimal]) -> IJudgmentGaihi:
-        from judgment_gaihi import Reg2_21_3
+        from IJudgment_gaihi import Reg2_21_3
         ins_name: str = 'reg2_21_3'
         if ins_name not in cls._instances:
             cls._instances[ins_name] = Reg2_21_3(reg_dic2_21_3, 
@@ -122,7 +130,7 @@ class InstanceFactory:
     @classmethod
     def get_reg1_4_1(cls, reg_dic1_4_1: Dict, 
                   brokendown_composition: Dict[str, Decimal]) -> IJudgmentGaihi:
-        from judgment_gaihi import Reg1_4_1
+        from IJudgment_gaihi import Reg1_4_1
         ins_name: str = 'reg1_4_1'
         if ins_name not in cls._instances:
             cls._instances[ins_name] = Reg1_4_1(reg_dic1_4_1, 
@@ -133,7 +141,7 @@ class InstanceFactory:
     @classmethod
     def get_reg2_35_3(cls, reg_dic2_35_3: Dict, 
                   brokendown_composition: Dict[str, Decimal]) -> IJudgmentGaihi:
-        from judgment_gaihi import Reg2_35_3
+        from IJudgment_gaihi import Reg2_35_3
         ins_name: str = 'reg2_35_3'
         if ins_name not in cls._instances:
             cls._instances[ins_name] = Reg2_35_3(reg_dic2_35_3, 
@@ -141,3 +149,13 @@ class InstanceFactory:
         return cls._instances[ins_name]
 
 
+    @classmethod
+    def get_excel_format(cls, dic_info: Dict[str, str], 
+                    regs: List[IJudgmentGaihi]) -> Union[IExcelFormat, None]:
+        format:str = dic_info['format']
+        if format == 'sonota':
+            return None
+        if format == 'toyotu':
+            return ToyotuFormat(dic_info, regs)
+        if format == 'nagase':
+            return NagaseFormat(dic_info, regs)

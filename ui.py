@@ -1,4 +1,5 @@
 from typing import Dict
+import unicodedata
 import tkinter as tk
 import subprocess
 import sys
@@ -6,7 +7,7 @@ from datetime import datetime  # 日付取得用
 
 def toggle_entry():
     # 状態を切り替え（Textウィジェットは "disabled" か "normal"）
-    if radio_addr_var.get() == 1:
+    if radio_addr_var.get() == 1: # 1はあて名変更あり
         text_addr.config(state="normal", bg="white")
     else:
         text_addr.config(state="disabled", bg="#f0f0f0")
@@ -29,7 +30,7 @@ def show_atena(atena: Dict):
 
 def launch_sub():
     # 各入力値を取得
-    pno = entry_pno.get()
+    pno = unicodedata.normalize("NFKC", entry_pno.get()).upper()
     date = entry_date.get()
     fmt = radio_fmt_var.get()
     # Textウィジェットからの取得は "1.0"（1行目の0文字目）から "end-1c"（最後から1文字前まで）
@@ -42,7 +43,7 @@ def launch_sub():
 
 
 def insert_to_dic_info(dic_info):
-    pno = entry_pno.get()
+    pno = unicodedata.normalize("NFKC", entry_pno.get()).upper()
     date = entry_date.get()
     fmt = radio_fmt_var.get()
     # Textウィジェットからの取得は "1.0"（1行目の0文字目）から "end-1c"（最後から1文字前まで）
@@ -86,12 +87,15 @@ def run_ui(dic_info: Dict[str, str], atena: Dict):
     frame_fmt = tk.LabelFrame(root, text="フォーマット選択", padx=10, pady=10)
     frame_fmt.pack(padx=20, pady=10, fill="x")
 
-    radio_fmt_var = tk.StringVar(value="toyotu")
+    radio_fmt_var = tk.StringVar(value="sonota")
     tk.Radiobutton(frame_fmt, text="豊通", variable=radio_fmt_var, 
                    value="toyotu", 
                    command=lambda:show_atena(atena)).pack(side="left", padx=20)
     tk.Radiobutton(frame_fmt, text="長瀬", variable=radio_fmt_var, 
                    value="nagase", 
+                   command=lambda:show_atena(atena)).pack(side="left", padx=20)
+    tk.Radiobutton(frame_fmt, text="その他", variable=radio_fmt_var, 
+                   value="sonota", 
                    command=lambda:show_atena(atena)).pack(side="left", padx=20)
 
 

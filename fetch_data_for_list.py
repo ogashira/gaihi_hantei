@@ -114,3 +114,38 @@ class FetchComponentBreakdown(IFetchDataForList):
             # cnxnは呼び出しもとでクローズ
 
         return data_list
+
+
+class FetchDb(IFetchDataForList):
+    '''
+    成分分解表の取得
+    '''
+    def __init__(self, cnxn, hinban) -> None:
+        self.cnxn = cnxn
+        self._hinban = hinban
+        
+
+    def fetch_data(self) -> List[List[Any]]:
+
+        cursor = self.cnxn.cursor()
+
+        sqlQuery = ("SELECT ITEM_ID AS 'hinban',"
+                    " LBL_HYOJI_NM AS 'display_name'"
+                    " From dbo.TF_DB"
+                    f" WHERE ITEM_ID = '{self._hinban}'"
+                    )
+
+        data_list: List[List[Any]] = []
+        cursor.execute(sqlQuery)
+
+        # 4. 2次元リストへ変換
+        # fetchall() はタプルのリストを返すため、リスト内包表記で各行をリスト化します
+        try:
+            data_list = [list(row) for row in cursor.fetchall()]
+        except Exception:
+            print(f'データベースfetch中に予期せぬエラーです fetch_hinban')
+        finally:
+            cursor.close()
+            # cnxnは呼び出しもとでクローズ
+
+        return data_list
