@@ -36,6 +36,18 @@ def put_maru_on_該_or_非(ws, cell_address: str,
         #shape.LockAspectRatio = True        # 縦横比を固定
         #shape.Width = 30                   # 横幅を150ポイントに設定（縦は自動調整されます）
 
+def put_daen_on_35_3(ws, cell_address: str)-> None:
+        # ※位置やサイズをいったん「0」や「-1（元のサイズ）」で仮置きします
+        shape_path = r'\\192.168.1.247\共有\技術課ﾌｫﾙﾀﾞ\200. effit_data\ﾏｽﾀ\該非判定書自動作成関連\ﾌｫｰﾏｯﾄ\daen.png'
+        shape = ws.Shapes.AddPicture(shape_path, LinkToFile=False, SaveWithDocument=True, Left=0, Top=0, Width=-1, Height=-1)
+
+        # 5. 画像の位置やサイズを調整する
+        # 例：D5セルの位置にぴったり合わせる場合
+        target_cell = ws.Range(cell_address)
+        shape.Left = target_cell.Left + 67   # セルの左端から5ポイント右へ移動
+        shape.Top = target_cell.Top + (-2)     # セルの上端から5ポイント下へ移動
+
+
 def round_up_significant_digits(x: Decimal, digits: int = 3) -> Decimal:
     '''
     有効桁数を指定して、指定した桁の有効桁に丸める
@@ -58,16 +70,16 @@ def round_up_significant_digits(x: Decimal, digits: int = 3) -> Decimal:
 
 
 def put_substance_name_and_percent(ws, cell_addresses, component_percent)-> None:
-    substance_name_col = int(cell_addresses['substance_name_cols'])
-    substance_percent_col = int(cell_addresses['substance_percent_cols'])
-    substance_rows = int(cell_addresses['substance_rows'])
+    substance_name_col = int(cell_addresses['substance_name_col'])
+    substance_percent_col = int(cell_addresses['substance_percent_col'])
+    substance_row = int(cell_addresses['substance_row'])
 
     for substance_key, substance_val in component_percent.items():
         if substance_val <= Decimal(0): # 含有量が0の場合は、スルー
             continue
 
         # 化学物質名と含有量を入力
-        row = substance_rows
+        row = substance_row
         while True:
             name_cell = ws.Cells(row, substance_name_col)
             percent_cell = ws.Cells(row, substance_percent_col)
@@ -87,6 +99,65 @@ def put_substance_name_and_percent(ws, cell_addresses, component_percent)-> None
             row += 1
 
 
+def put_on_higaitou_nagase(substance: str, percent: Decimal, 
+                           higai_set: Dict[str, int],
+                           ws: object) -> None:
+
+    stt_row = higai_set['higai_stt_row']
+    last_row = higai_set['higai_last_row']
+    substance_col = higai_set['higai_col']
+    percent_col = higai_set['higai_percent_col']
+
+    if percent <= Decimal('0'):
+        return
+
+    i = stt_row
+    # セルにデータが入っていてlast_rowより小さい間は場合はrowをインクリ
+    while ws.Cells(i, substance_col).Value is not None and i < last_row:
+        i += 1
+
+    up_percent = round_up_significant_digits(percent, 3)
+    ws.Cells(i, substance_col).Value = substance
+    ws.Cells(i, percent_col).Value = "< " + str(up_percent)
+
+
+def put_on_gaitou_nagase(substance: str, percent: Decimal, 
+                         gai_set: Dict[str, int], ws: object, 
+                         koumoku: str)-> None:
+
+    stt_row = gai_set['gai_stt_row']
+    last_row = gai_set['gai_last_row']
+    col = gai_set['gai_col']
+
+    i = stt_row
+    # セルにデータが入っていてlast_rowより小さい間は場合はrowをインクリ
+    while ws.Cells(i, col).Value is not None and i < last_row:
+        i += 1
+
+    up_percent = round_up_significant_digits(percent, 3)
+    txt = f'{koumoku}  ({substance}  < {up_percent}%)'
+    ws.Cells(i, col).Value = txt
+
+
+def put_on_gaitou_or_higaitou_nagase(substance: str, percent: Decimal, 
+                                     gai_set: Dict[str,int], 
+                                     higai_set: Dict[str, int], ws: object,
+                                     koumoku: str, reg_dic: Dict)-> None:
+
+
+    threshold_gaitou_over: float = int(reg_dic[substance]['threshold_gaitou_over'])
+    if percent <= Decimal('0'):
+        return
+    if percent >= Decimal(threshold_gaitou_over):
+        # 50以上の場合は、該当欄に入力する
+        put_on_gaitou_nagase(substance, percent, gai_set, ws, koumoku)
+        return
+
+    # 0以下でも50以上でもない場合
+    put_on_higaitou_nagase(substance, percent, higai_set, ws)
+    return
+
+
 class IJudgmentGaihi(ABC):
 
     @abstractmethod
@@ -98,7 +169,11 @@ class IJudgmentGaihi(ABC):
         pass
 
     @abstractmethod
-    def input_to_excel_format(self, ws, cell_addresses: Dict[str, str]) -> None:
+    def input_to_excel_toyotu(self, ws, cell_addresses: Dict[str, str]) -> None:
+        pass
+
+    @abstractmethod
+    def input_to_excel_nagase(self, ws, cell_addresses: Dict[str, str]) -> None:
         pass
 
 
@@ -110,10 +185,12 @@ class Reg2_21_3(IJudgmentGaihi):
                  brokendown_composition: Dict[str, Decimal])-> None:
         '''
         reg_dic = 
-        {'composit1': {'hinban': 'G-TOL', 'name': 'トルエン', 'threshold': 
-        {'対象外': 'x == 0', '非': 'x > 0 and x < 50', '該': 'x >= 50 and x <= 100'}}, 
-        'composit2': {'hinban': 'G-MEK', 'name': 'エチルメチルケトン', 'threshold': 
-        {'対象外': 'x == 0', '非': 'x > 0 and x < 50', '該': 'x >= 50'}}
+        {'トルエン': {'hinban': 'G-TOL', 'name': 'トルエン', 'threshold': 
+        {'対象外': 'x == 0', '非': 'x > 0 and x < 50', '該': 'x >= 50 and x <= 100'},
+        'threshold_gaitou_over': "50"}, 
+        'エチルメチルケトン': {'hinban': 'G-MEK', 'name': 'エチルメチルケトン', 'threshold': 
+        {'対象外': 'x == 0', '非': 'x > 0 and x < 50', '該': 'x >= 50'},
+        'threshold_gaitou_over': "50"}
         '''
         self._reg_dic: Dict = reg_dic
         self._composition: Dict[str,Decimal] = brokendown_composition
@@ -164,7 +241,7 @@ class Reg2_21_3(IJudgmentGaihi):
         return gaihi_dic
 
 
-    def input_to_excel_format(self, ws, 
+    def input_to_excel_toyotu(self, ws, 
                               cell_addresses: Dict[str, str]) -> None:
 
         if self._gaihi['reg2-21-3'] == '対象外':
@@ -180,8 +257,39 @@ class Reg2_21_3(IJudgmentGaihi):
         put_substance_name_and_percent(ws, cell_addresses, self._component_percent)
 
 
+    def input_to_excel_nagase(self, ws, 
+                              cell_addresses: Dict[str, str]) -> None:
 
-class Reg1_4_1(IJudgmentGaihi):
+        if self._gaihi['reg2-21-3'] == '対象外':
+            return
+
+        gai_set: Dict[str, int] = {
+            'gai_stt_row': int(cell_addresses['gaitou_kouban_row']),
+            'gai_col': int(cell_addresses['gaitou_kouban_col']),
+            'gai_last_row': int(cell_addresses['gaitou_kouban_last_row'])
+        }
+
+        higai_set: Dict[str, int] = {
+            'higai_stt_row': int(cell_addresses['higaitou_substance_row']),
+            'higai_col': int(cell_addresses['higaitou_substance_col']),
+            'higai_last_row': int(cell_addresses['higaitou_substance_last_row']),
+            'higai_percent_col': int(cell_addresses['higaitou_percent_col'])
+        }
+
+        for substance, percent in self._component_percent.items():
+            if self._gaihi['reg2-21-3'] == '該':
+                # 該の場合の入力はpercentによって該当欄か非該当欄かに分かれる
+                put_on_gaitou_or_higaitou_nagase(substance, percent, 
+                                                 gai_set, higai_set, 
+                                                 ws, '別表2-21-3 ',
+                                                 self._reg_dic)
+                continue
+
+            if self._gaihi['reg2-21-3'] == '非':
+                put_on_higaitou_nagase(substance, percent, higai_set, ws)
+
+
+class Reg1_4_6(IJudgmentGaihi):
     '''
     ミサイル（ポリブタ）
     '''
@@ -190,10 +298,11 @@ class Reg1_4_1(IJudgmentGaihi):
                  brokendown_composition: Dict[str, Decimal])-> None:
         '''
         reg_dic = 
-        {'composit1': {'hinban': 
+        {'末端に水酸基を有するポリブタジエン': {'hinban': 
         ['G-G-2000', 'G-G-3000', 'G-T-4000', 'G-TP-2000'], 
         'name': '末端に水酸基を有するポリブタジエン', 'threshold': 
-        {'対象外': 'x == 0', '非': 'x > 0 and x <= 100', '該': 'False'}}
+        {'対象外': 'x == 0', '非': 'x > 0 and x <= 100', '該': 'False'},
+        'threshold_gaitou_over': "101"}
         '''
         self._reg_dic: Dict = reg_dic
         self._composition: Dict[str,Decimal] = brokendown_composition
@@ -223,24 +332,58 @@ class Reg1_4_1(IJudgmentGaihi):
             name = val['name'] # 末端に水酸基を有するポリブタジエン
             d = val['threshold'] # {'対象外': 'x = 0 ...} 
             percent = self._component_percent.get(name, Decimal(0))
-            gaihi_dic['reg1-4-1'] = hantei(d, percent)
+            gaihi_dic['reg1-4-6'] = hantei(d, percent)
 
         return gaihi_dic
 
-    def input_to_excel_format(self, ws, 
+    def input_to_excel_toyotu(self, ws, 
                               cell_addresses: Dict[str, str]) -> None:
-        if self._gaihi['reg1-4-1'] == '対象外':
-            ws.Range(cell_addresses['not_reg1-4-1']).value = "◯"
+        if self._gaihi['reg1-4-6'] == '対象外':
+            ws.Range(cell_addresses['not_reg1-4-6']).value = "◯"
             return
 
         # 該または非の上に◯を置く
-        cell_address: str = cell_addresses['reg1-4-1'] # H29
-        gaihi = self._gaihi['reg1-4-1']
+        cell_address: str = cell_addresses['reg1-4-6'] # H29
+        gaihi = self._gaihi['reg1-4-6']
         put_maru_on_該_or_非(ws, cell_address, gaihi)
         # 化学物質名と含有量を入力
         put_substance_name_and_percent(ws, cell_addresses, self._component_percent)
 
 
+    def input_to_excel_nagase(self, ws, 
+                              cell_addresses: Dict[str, str]) -> None:
+
+        if self._gaihi['reg1-4-6'] == '対象外':
+            return
+
+        gai_set: Dict[str, int] = {
+            'gai_stt_row': int(cell_addresses['gaitou_kouban_row']),
+            'gai_col': int(cell_addresses['gaitou_kouban_col']),
+            'gai_last_row': int(cell_addresses['gaitou_kouban_last_row'])
+        }
+
+        higai_set: Dict[str, int] = {
+            'higai_stt_row': int(cell_addresses['higaitou_substance_row']),
+            'higai_col': int(cell_addresses['higaitou_substance_col']),
+            'higai_last_row': int(cell_addresses['higaitou_substance_last_row']),
+            'higai_percent_col': int(cell_addresses['higaitou_percent_col'])
+        }
+
+        for substance, percent in self._component_percent.items():
+            if self._gaihi['reg1-4-6'] == '該':
+                # 該の場合の入力はpercentによって該当欄か非該当欄かに分かれる
+                put_on_gaitou_or_higaitou_nagase(substance, percent, 
+                                                 gai_set, higai_set, 
+                                                 ws, '別表1-4-6 ', 
+                                                 self._reg_dic)
+                continue
+
+            if self._gaihi['reg1-4-6'] == '非':
+                put_on_higaitou_nagase(substance, percent, higai_set, ws)
+
+
+    
+    
 class Reg2_35_3(IJudgmentGaihi):
     '''
     トリブチルスズ化合物
@@ -249,9 +392,10 @@ class Reg2_35_3(IJudgmentGaihi):
     def __init__(self, reg_dic: Dict, 
                  brokendown_composition: Dict[str, Decimal])-> None:
         '''
-        {'composit1': {'hinban': 'G-DI-PN', '含有': 0.0003, 'name': 
+        {'トリブチルスズ化合物': {'hinban': 'G-DI-PN', '含有': 0.0003, 'name': 
         'トリブチルスズ化合物', 'threshold': {'対象外': 'x == 0', 
-        '非': 'x > 0 and x < 0.05', '該': 'x >= 0.05'}}
+        '非': 'x > 0 and x < 0.05', '該': 'x >= 0.05'},
+        'threshold_gaitou_over': "0.05"}
         '''
         self._reg_dic: Dict = reg_dic
         self._composition: Dict[str,Decimal] = brokendown_composition
@@ -284,7 +428,7 @@ class Reg2_35_3(IJudgmentGaihi):
 
         return gaihi_dic
 
-    def input_to_excel_format(self, ws, 
+    def input_to_excel_toyotu(self, ws, 
                               cell_addresses: Dict[str, str]) -> None:
         if self._gaihi['reg2-35-3'] == '対象外':
             ws.Range(cell_addresses['not_reg2-35-3']).value = "◯"
@@ -294,5 +438,42 @@ class Reg2_35_3(IJudgmentGaihi):
         cell_address: str = cell_addresses['reg2-35-3'] # H41
         gaihi = self._gaihi['reg2-35-3'] # 該または非
         put_maru_on_該_or_非(ws, cell_address, gaihi)
+
+        # 35の3項の上に楕円を置く
+        cell_address: str = "D40"
+        put_daen_on_35_3(ws, cell_address)
+
         # 化学物質名と含有量を入力
         put_substance_name_and_percent(ws, cell_addresses, self._component_percent)
+
+    
+    def input_to_excel_nagase(self, ws, 
+                              cell_addresses: Dict[str, str]) -> None:
+
+        if self._gaihi['reg2-35-3'] == '対象外':
+            return
+
+        gai_set: Dict[str, int] = {
+            'gai_stt_row': int(cell_addresses['gaitou_kouban_row']),
+            'gai_col': int(cell_addresses['gaitou_kouban_col']),
+            'gai_last_row': int(cell_addresses['gaitou_kouban_last_row'])
+        }
+
+        higai_set: Dict[str, int] = {
+            'higai_stt_row': int(cell_addresses['higaitou_substance_row']),
+            'higai_col': int(cell_addresses['higaitou_substance_col']),
+            'higai_last_row': int(cell_addresses['higaitou_substance_last_row']),
+            'higai_percent_col': int(cell_addresses['higaitou_percent_col'])
+        }
+
+        for substance, percent in self._component_percent.items():
+            if self._gaihi['reg2-35-3'] == '該':
+                # 該の場合の入力はpercentによって該当欄か非該当欄かに分かれる
+                put_on_gaitou_or_higaitou_nagase(substance, percent, 
+                                                 gai_set, higai_set, 
+                                                 ws, '別表2-35-3 ',
+                                                 self._reg_dic)
+                continue
+
+            if self._gaihi['reg2-35-3'] == '非':
+                put_on_higaitou_nagase(substance, percent, higai_set, ws)

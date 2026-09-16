@@ -111,9 +111,9 @@ def run_ui(dic_info: Dict[str, str], atena: Dict):
     tk.Radiobutton(sub_frame_radio, text="変更あり", variable=radio_addr_var, 
                    value=1, command=toggle_entry).pack(side="left", padx=10)
 
-    # 宛名入力欄（5行分の高さに設定）
-    # height=5 で5行分、width=40 で幅を指定
-    text_addr = tk.Text(frame_addr, height=5, width=40, 
+    # 宛名入力欄（4行分の高さに設定）
+    # height=4 で4行分、width=60 で幅を指定
+    text_addr = tk.Text(frame_addr, height=4, width=60, 
                         state="disabled", bg="#f0f0f0")
     text_addr.pack(pady=10)
 

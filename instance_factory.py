@@ -128,12 +128,12 @@ class InstanceFactory:
 
 
     @classmethod
-    def get_reg1_4_1(cls, reg_dic1_4_1: Dict, 
+    def get_reg1_4_6(cls, reg_dic1_4_6: Dict, 
                   brokendown_composition: Dict[str, Decimal]) -> IJudgmentGaihi:
-        from IJudgment_gaihi import Reg1_4_1
-        ins_name: str = 'reg1_4_1'
+        from IJudgment_gaihi import Reg1_4_6
+        ins_name: str = 'reg1_4_6'
         if ins_name not in cls._instances:
-            cls._instances[ins_name] = Reg1_4_1(reg_dic1_4_1, 
+            cls._instances[ins_name] = Reg1_4_6(reg_dic1_4_6, 
                                                  brokendown_composition)
         return cls._instances[ins_name]
 

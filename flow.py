@@ -62,7 +62,12 @@ def start()-> None:
     db: IFetchDataForList = InstanceFactory.get_fetchDb(hinban)
     display_name_list: List[List[Any]] = db.fetch_data() 
     #[['S6-SV3800-U', 'SV-3800アンダー']] として返ってくる
-    dic_info['display_name'] = display_name_list[0][1]
+    try:
+        dic_info['display_name'] = display_name_list[0][1]
+    except IndexError:
+        print('入力した品番がありません! 処理を中止します')
+        InstanceFactory.delete_cnxn()
+        return
 
     # 入力されたhinbanを配合が存在する品番に変換する。
     # まず、-EX-ENG, -1-U などを　-EX, -U にする
@@ -105,14 +110,14 @@ def start()-> None:
     reg2_21_3: IJudgmentGaihi = InstanceFactory.get_reg2_21_3(reg_dic2_21_3, 
                                                         brokendown_composition)
     
-    reg_dic1_4_1 = config['regulations']['1-4-1']
-    reg1_4_1: IJudgmentGaihi = InstanceFactory.get_reg1_4_1(reg_dic1_4_1, 
+    reg_dic1_4_6 = config['regulations']['1-4-6']
+    reg1_4_6: IJudgmentGaihi = InstanceFactory.get_reg1_4_6(reg_dic1_4_6, 
                                                         brokendown_composition)
 
     reg_dic2_35_3 = config['regulations']['2-35-3']
     reg2_35_3: IJudgmentGaihi = InstanceFactory.get_reg2_35_3(reg_dic2_35_3, 
                                                         brokendown_composition)
-    regs = [reg2_21_3, reg1_4_1, reg2_35_3]
+    regs = [reg2_21_3, reg1_4_6, reg2_35_3]
 
     excel_format: Union[IExcelFormat, None] = \
                             InstanceFactory.get_excel_format(dic_info, regs)
@@ -130,3 +135,5 @@ def start()-> None:
     finally:
         # 最後にsql_server, sql_server_tssのcnxnを削除する
         InstanceFactory.delete_cnxn()
+        print()
+        print("処理が完了しました！")
